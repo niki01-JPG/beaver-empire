@@ -3,57 +3,793 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Beaver Empire</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>Beaver Empire - Deep Idle Game</title>
+    <style>
+      * { box-sizing: border-box; }
+      :root {
+        --bg: #0f1720;
+        --panel: #15242f;
+        --panel-alt: #1c2d39;
+        --text: #e7f0f4;
+        --muted: #a8bac6;
+        --gold: #f5c76b;
+        --green: #7ad6a0;
+        --blue: #7ec8ff;
+        --cyan: #7de5d2;
+        --orange: #ef9b5d;
+        --red: #ff7c7c;
+        --shadow: rgba(0, 0, 0, 0.26);
+      }
+
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: radial-gradient(circle at top, rgba(100, 139, 172, 0.2), transparent 22%),
+          linear-gradient(180deg, #0a1117 0%, var(--bg) 100%);
+        color: var(--text);
+        font-family: Inter, "Segoe UI", sans-serif;
+        overflow-x: hidden;
+      }
+
+      button {
+        border: none;
+        border-radius: 10px;
+        padding: 0.7rem 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.12s ease, filter 0.12s ease;
+      }
+
+      button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+      button:active { transform: translateY(0); }
+      button.secondary { background: var(--panel-alt); color: var(--text); }
+      button.danger { background: linear-gradient(135deg, #ce5b5b, #9b3131); color: white; }
+      button.action-btn, button.buy-btn, button.tech-btn, button.mission-btn {
+        background: #2d4254;
+        color: var(--text);
+      }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .app-shell { width: min(1600px, calc(100vw - 24px)); margin: 20px auto; }
+      .topbar {
+        display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;
+        padding: 0.75rem 1rem; border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(13, 22, 28, 0.9); border-radius: 14px; box-shadow: 0 12px 24px var(--shadow);
+      }
+      .eyebrow { margin: 0; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.7rem; color: var(--muted); }
+      h1 { margin: 0.15rem 0 0; font-size: clamp(2rem, 3vw, 3rem); }
+      .header-actions { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+      .prestige-info { font-size: 0.9rem; color: var(--gold); font-weight: 700; }
+
+      .tabs-nav {
+        display: flex; gap: 8px; margin-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px;
+      }
+      .tab-btn {
+        padding: 0.6rem 1rem; background: transparent; border-bottom: 3px solid transparent; color: var(--muted);
+        border-radius: 0; cursor: pointer; transition: all 0.2s;
+      }
+      .tab-btn:hover { color: var(--text); }
+      .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+      .tab-content { display: none; }
+      .tab-content.active { display: block; }
+
+      .resources-bar {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px;
+      }
+      .resource-card {
+        padding: 0.8rem 1rem; border-radius: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+        border: 1px solid rgba(255,255,255,0.06); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      }
+      .resource-card .label {
+        display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+      }
+      .resource-card .value { margin-top: 0.4rem; font-weight: 800; font-size: 1.5rem; }
+      .resource-card .pps { margin-top: 0.2rem; color: var(--green); font-size: 0.75rem; }
+      .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+
+      .layout { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 18px; }
+      .panel-stack, .content-column { display: grid; gap: 18px; }
+      .panel {
+        background: linear-gradient(180deg, rgba(18, 29, 38, 0.96), rgba(14, 22, 29, 0.96)); border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 16px; padding: 1rem; box-shadow: 0 14px 26px var(--shadow);
+      }
+      .panel h2 { margin: 0 0 0.8rem; font-size: 1.2rem; }
+      .panel h3 { margin: 0.8rem 0 0.5rem; font-size: 1.05rem; color: var(--blue); }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+      .stat-box {
+        display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0.7rem 0.8rem; border-radius: 12px;
+        background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); color: var(--text);
+      }
+      .stat-box .meta { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; }
+      .stat-box .value { font-weight: 800; font-size: 1.1rem; }
+
+      .job-row, .building-item, .tech-item, .mission-item { display: grid; gap: 0.5rem; padding: 0.8rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); }
+      .job-row { grid-template-columns: 1fr auto; align-items: center; }
+      .job-left { display: flex; flex-direction: column; gap: 0.2rem; }
+      .job-name { font-weight: 700; font-size: 0.95rem; }
+      .job-actions { display: flex; gap: 0.45rem; }
+      .action-btn { width: 28px; height: 28px; padding: 0; font-size: 1rem; border-radius: 8px; line-height: 1; }
+      .building-item { grid-template-columns: 1fr auto; align-items: center; }
+      .building-info h4, .tech-item h4, .mission-item h4 { margin: 0; font-size: 0.95rem; }
+      .building-info p, .tech-item p, .mission-item p { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.8rem; }
+      .cost-line, .status-line, .progress-line { display: flex; flex-wrap: wrap; gap: 0.3rem 0.6rem; align-items: center; font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
+      .cost-pill, .status-pill, .effect-pill { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 999px; padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.04); font-size: 0.7rem; }
+      .buy-btn, .tech-btn, .mission-btn { padding: 0.6rem 0.8rem; min-width: 100px; font-size: 0.9rem; }
+
+      .event-box {
+        padding: 0.75rem 0.8rem; border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+        margin-bottom: 0.8rem;
+      }
+      .event-box h3 { margin: 0 0 0.3rem; font-size: 1rem; }
+      .event-box p { margin: 0.2rem 0; font-size: 0.85rem; color: var(--muted); }
+
+      .progress-bar {
+        width: 100%; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); overflow: hidden; margin-top: 0.4rem;
+      }
+      .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); transition: width 0.3s; }
+
+      .log-list { display: grid; gap: 0.5rem; }
+      .log-item {
+        padding: 0.6rem 0.7rem; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); color: var(--muted); font-size: 0.8rem; line-height: 1.3;
+      }
+
+      .milestone-badge {
+        display: inline-block; padding: 0.3rem 0.6rem; background: linear-gradient(135deg, var(--gold), var(--orange)); border-radius: 6px; color: #000; font-weight: 700; font-size: 0.7rem; margin-top: 0.3rem;
+      }
+
+      .production-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8rem; }
+      .prod-item { display: flex; justify-content: space-between; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.01); border-radius: 6px; }
+
+      @media (max-width: 1100px) {
+        .layout { grid-template-columns: 1fr; }
+        .topbar { flex-direction: column; align-items: flex-start; gap: 0.8rem; }
+      }
+    </style>
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Idle Strategy / Browser Game</p>
-          <h1>Beaver Empire</h1>
+          <p class="eyebrow">Deep Idle Strategy Game</p>
+          <h1>🦫 Beaver Empire</h1>
+          <div class="prestige-info" id="prestigeInfo"></div>
         </div>
         <div class="header-actions">
-          <button id="saveBtn" class="secondary">Speichern</button>
-          <button id="resetBtn" class="danger">Prestige</button>
+          <button id="saveBtn" class="secondary">💾 Speichern</button>
+          <button id="resetBtn" class="danger">⭐ Prestige</button>
         </div>
       </header>
 
       <section id="resourcesBar" class="resources-bar"></section>
 
-      <div class="layout">
-        <aside class="panel-stack left-column">
-          <section class="panel">
-            <h2>Bevölkerung</h2>
-            <div id="populationPanel"></div>
-            <div id="jobPanel"></div>
-          </section>
+      <nav class="tabs-nav">
+        <button class="tab-btn active" data-tab="overview">Überblick</button>
+        <button class="tab-btn" data-tab="buildings">Gebäude</button>
+        <button class="tab-btn" data-tab="tech">Technologie</button>
+        <button class="tab-btn" data-tab="missions">Missionen</button>
+        <button class="tab-btn" data-tab="stats">Statistiken</button>
+      </nav>
 
-          <section class="panel">
-            <h2>Gebäude</h2>
-            <div id="buildingPanel"></div>
-          </section>
-        </aside>
+      <div id="overviewTab" class="tab-content active">
+        <div class="layout">
+          <aside class="panel-stack left-column">
+            <section class="panel">
+              <h2>Bevölkerung</h2>
+              <div id="populationPanel"></div>
+              <div id="jobPanel"></div>
+            </section>
+            <section class="panel">
+              <h2>Umwelt</h2>
+              <div id="environmentPanel"></div>
+            </section>
+          </aside>
 
-        <main class="content-column">
-          <section class="panel">
-            <h2>Umwelt & Ereignisse</h2>
-            <div id="eventPanel"></div>
-          </section>
+          <main class="content-column">
+            <section class="panel">
+              <h2>Produktion & Effizienz</h2>
+              <div id="productionPanel"></div>
+            </section>
+            <section class="panel">
+              <h2>Aktuelle Ereignisse</h2>
+              <div id="eventPanel"></div>
+            </section>
+            <section class="panel">
+              <h2>Chronik</h2>
+              <div id="logPanel"></div>
+            </section>
+          </main>
+        </div>
+      </div>
 
-          <section class="panel">
-            <h2>Technologie</h2>
-            <div id="techPanel"></div>
-          </section>
+      <div id="buildingsTab" class="tab-content">
+        <div class="layout">
+          <aside class="panel-stack left-column">
+            <section class="panel">
+              <h2>Basis-Infrastruktur</h2>
+              <div id="buildingsBasicPanel"></div>
+            </section>
+          </aside>
+          <main class="content-column">
+            <section class="panel">
+              <h2>Spezialisierte Bauten</h2>
+              <div id="buildingsSpecialPanel"></div>
+            </section>
+            <section class="panel">
+              <h2>Monumentale Werke</h2>
+              <div id="buildingsMonumentalPanel"></div>
+            </section>
+          </main>
+        </div>
+      </div>
 
-          <section class="panel">
-            <h2>Chronik</h2>
-            <div id="logPanel"></div>
-          </section>
-        </main>
+      <div id="techTab" class="tab-content">
+        <div class="layout">
+          <main style="grid-column: 1 / -1;">
+            <section class="panel">
+              <h2>Frühe Technologien</h2>
+              <div id="techEarlyPanel"></div>
+            </section>
+            <section class="panel">
+              <h2>Fortgeschrittene Technologien</h2>
+              <div id="techAdvancedPanel"></div>
+            </section>
+            <section class="panel">
+              <h2>Hochzeitechnologien</h2>
+              <div id="techElitePanel"></div>
+            </section>
+          </main>
+        </div>
+      </div>
+
+      <div id="missionsTab" class="tab-content">
+        <div class="layout">
+          <main style="grid-column: 1 / -1;">
+            <section class="panel">
+              <h2>Erkundungsmissionen</h2>
+              <p style="color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem;">Missionen bringen Ruhm, neue Ressourcen und Forschungs-Boni. Je schwerer die Mission, desto größer die Belohnung.</p>
+              <div id="missionsPanel"></div>
+            </section>
+          </main>
+        </div>
+      </div>
+
+      <div id="statsTab" class="tab-content">
+        <div class="layout">
+          <main style="grid-column: 1 / -1;">
+            <section class="panel">
+              <h2>Zivilisations-Fortschritt</h2>
+              <div id="progressPanel"></div>
+            </section>
+            <section class="panel">
+              <h2>Erreichungen & Meilensteine</h2>
+              <div id="achievementsPanel"></div>
+            </section>
+          </main>
+        </div>
       </div>
     </div>
 
-    <script src="game.js"></script>
+    <script>
+      const SAVE_KEY = "beaver-empire-deep-v2";
+
+      const RESOURCE_META = {
+        food: { name: "Nahrung", color: "#f5c76b", emoji: "🌾" },
+        wood: { name: "Holz", color: "#d6a96a", emoji: "🪵" },
+        stone: { name: "Stein", color: "#b0bec7", emoji: "🪨" },
+        water: { name: "Wasser", color: "#7ec8ff", emoji: "💧" },
+        knowledge: { name: "Wissen", color: "#8fa8ff", emoji: "📚" },
+        renown: { name: "Ruhm", color: "#ffb36b", emoji: "⭐" },
+        mineral: { name: "Mineralien", color: "#c0b0ff", emoji: "✨" },
+        energy: { name: "Energie", color: "#ff9d7c", emoji: "⚡" }
+      };
+
+      const BUILDINGS = {
+        lodge: { name: "Biberhütte", cat: "basic", cost: { wood: 15 }, effect: () => ({ housing: 2 }), description: "Schlafplatz für mehr Biber." },
+        dam: { name: "Damm", cat: "basic", cost: { wood: 22, stone: 8 }, effect: () => ({ water: 0.7, food: 0.15 }), description: "Staut Wasser und verbessert Produktion." },
+        sawmill: { name: "Sägewerk", cat: "basic", cost: { wood: 32, stone: 12 }, effect: () => ({ wood: 1.5 }), description: "Schnellere Holzproduktion." },
+        quarry: { name: "Steinbruch", cat: "basic", cost: { wood: 28, stone: 6 }, effect: () => ({ stone: 1.25 }), description: "Neue Steinvorkommen." },
+        nursery: { name: "Kinderhort", cat: "basic", cost: { wood: 22, food: 18 }, effect: () => ({ population: 0.15 }), description: "Schnelleres Bevölkerungswachstum." },
+        workshop: { name: "Werkstatt", cat: "special", cost: { wood: 42, stone: 20 }, effect: () => ({ knowledge: 0.7 }), description: "Technische Entwicklung." },
+        observatory: { name: "Beobachtungsplattform", cat: "special", cost: { wood: 55, stone: 28, knowledge: 10 }, effect: () => ({ knowledge: 1.4, renown: 0.05 }), description: "Wissensforschung und Ruhm." },
+        archive: { name: "Archiv", cat: "special", cost: { wood: 70, stone: 35, knowledge: 25 }, effect: () => ({ knowledge: 1.8 }), description: "Zentrale Wissensspeicherung." },
+        granary: { name: "Speicher", cat: "special", cost: { wood: 50, stone: 20, food: 30 }, effect: () => ({ food: 0.5 }), description: "Verbesserte Nahrungslagerung." },
+        refinery: { name: "Raffinerie", cat: "special", cost: { wood: 85, stone: 50, knowledge: 20 }, effect: () => ({ mineral: 1.2, energy: 0.4 }), description: "Mineralien verarbeiten." },
+        monument_stone: { name: "Steinmonument", cat: "monumental", cost: { stone: 200, wood: 100, knowledge: 50 }, effect: () => ({ renown: 0.3 }), description: "Monumentale Struktur für Ruhm." },
+        monument_water: { name: "Großdamm", cat: "monumental", cost: { water: 100, stone: 150, wood: 120 }, effect: () => ({ water: 2.0, food: 0.8 }), description: "Massive Infrastruktur-Erweiterung." },
+        research_lab: { name: "Forschungslabor", cat: "monumental", cost: { wood: 150, stone: 100, knowledge: 80, mineral: 40 }, effect: () => ({ knowledge: 2.5 }), description: "Zentrum der technischen Revolution." },
+        power_plant: { name: "Energieanlage", cat: "monumental", cost: { wood: 200, stone: 150, energy: 30, mineral: 60 }, effect: () => ({ energy: 2.0 }), description: "Moderne Energieerzeugung." }
+      };
+
+      const JOBS = {
+        forager: { name: "Sammler", prod: { food: 1.1, water: 0.25 } },
+        lumberjack: { name: "Holzfäller", prod: { wood: 1.6 } },
+        builder: { name: "Bauleiter", prod: { stone: 0.5, water: 0.15 } },
+        researcher: { name: "Forscher", prod: { knowledge: 0.8 } },
+        miner: { name: "Bergarbeiter", prod: { mineral: 0.6 }, unlock: "mining" },
+        engineer: { name: "Ingenieur", prod: { energy: 0.5, knowledge: 0.3 }, unlock: "engineering" }
+      };
+
+      const TECHS = {
+        gathering: { name: "Verbessertes Sammeln", tier: "early", cost: { wood: 18, food: 12 }, effect: { foodMult: 1.5 } },
+        carpentry: { name: "Zimmerkunst", tier: "early", cost: { wood: 35, knowledge: 8 }, effect: { woodMult: 1.6 } },
+        masonry: { name: "Mauerwerk", tier: "early", cost: { wood: 40, stone: 18, knowledge: 12 }, effect: { stoneMult: 1.8 } },
+        rivercontrol: { name: "Flusskontrolle", tier: "early", cost: { wood: 50, stone: 22, knowledge: 16 }, effect: { waterMult: 2.0 } },
+        agriculture: { name: "Landwirtschaft", tier: "early", cost: { food: 25, knowledge: 15 }, effect: { foodMult: 1.7 } },
+        mining: { name: "Bergbau", tier: "advanced", cost: { wood: 100, stone: 60, knowledge: 40 }, effect: { mineralMult: 1.0 }, unlock: "miner" },
+        metallurgy: { name: "Metallurgie", tier: "advanced", cost: { mineral: 30, stone: 50, knowledge: 50 }, effect: { stoneMult: 1.4, mineralMult: 1.5 } },
+        engineering: { name: "Ingenieurwesen", tier: "advanced", cost: { wood: 120, knowledge: 70, mineral: 40 }, effect: { woodMult: 1.5, energyMult: 1.0 }, unlock: "engineer" },
+        ecology: { name: "Ökologie", tier: "advanced", cost: { wood: 150, knowledge: 60, food: 50 }, effect: { foodMult: 1.8, waterMult: 1.5 } },
+        industry: { name: "Industrialisierung", tier: "elite", cost: { wood: 300, stone: 200, knowledge: 150, mineral: 100 }, effect: { woodMult: 2.0, stoneMult: 2.0 } },
+        renewable: { name: "Erneuerbare Energien", tier: "elite", cost: { knowledge: 200, energy: 100, mineral: 80 }, effect: { energyMult: 2.5 } },
+        automation: { name: "Automatisierung", tier: "elite", cost: { knowledge: 250, energy: 150, mineral: 120 }, effect: { foodMult: 1.5, woodMult: 1.6, stoneMult: 1.5 } },
+        civilization: { name: "Zivilisation", tier: "elite", cost: { knowledge: 400, renown: 100, mineral: 200, energy: 200 }, effect: { foodMult: 2.0, allProd: 1.3 }, final: true }
+      };
+
+      const MISSIONS = {
+        forest_expedition: { name: "Waldexpedition", cost: { energy: 5 }, reward: { wood: 200, knowledge: 20, renown: 10 }, difficulty: "easy", time: 8 },
+        mountain_climb: { name: "Bergbesteigung", cost: { energy: 15 }, reward: { stone: 300, mineral: 50, renown: 25 }, difficulty: "medium", time: 16 },
+        river_trade: { name: "Flusshandel", cost: { energy: 20, food: 100 }, reward: { water: 150, renown: 30, knowledge: 40 }, difficulty: "medium", time: 12 },
+        deep_mine: { name: "Tiefenbergbau", cost: { energy: 40, mineral: 30 }, reward: { mineral: 200, knowledge: 60, renown: 50 }, difficulty: "hard", time: 24 },
+        great_expedition: { name: "Große Expedition", cost: { energy: 60, renown: 40 }, reward: { mineral: 300, knowledge: 100, renown: 80, water: 200 }, difficulty: "hard", time: 32 }
+      };
+
+      const WEATHER = [
+        { name: "Sonnenwetter", food: 1.1, water: 1.0 },
+        { name: "Regen", food: 1.2, water: 1.4 },
+        { name: "Niedriges Hochwasser", food: 1.0, water: 1.15 },
+        { name: "Starker Sturm", food: 0.8, water: 1.25 },
+        { name: "Frühlingsfluss", food: 1.25, water: 1.8 },
+        { name: "Dürre", food: 0.6, water: 0.7 }
+      ];
+
+      const MILESTONES = {
+        100_biber: { name: "100 Biber", cond: () => state.population.total >= 100, reward: { renown: 20 } },
+        1000_wood: { name: "1000 Holz", cond: () => state.resources.wood >= 1000, reward: { renown: 15 } },
+        50_buildings: { name: "50 Gebäude", cond: () => Object.values(state.buildings).reduce((a,b) => a+b, 0) >= 50, reward: { renown: 25 } },
+        all_jobs: { name: "Alle Jobs", cond: () => Object.keys(JOBS).every(j => state.jobs[j] > 0), reward: { knowledge: 50 } },
+        first_monument: { name: "Erstes Monument", cond: () => Object.keys(BUILDINGS).filter(k => BUILDINGS[k].cat === "monumental").some(k => state.buildings[k] > 0), reward: { renown: 50 } },
+        civilization_tech: { name: "Zivilisation", cond: () => state.tech.civilization, reward: { renown: 200 } }
+      };
+
+      const defaultState = () => ({
+        version: 2,
+        lastTick: Date.now(),
+        weatherIndex: 0,
+        weatherTimer: 0,
+        missionActive: null,
+        missionProgress: 0,
+        resources: { food: 30, wood: 18, stone: 4, water: 8, knowledge: 0, renown: 0, mineral: 0, energy: 0 },
+        buildings: Object.keys(BUILDINGS).reduce((o, k) => ({...o, [k]: 0}), { lodge: 1 }),
+        jobs: Object.keys(JOBS).reduce((o, k) => ({...o, [k]: 0}), {}),
+        population: { total: 1, free: 1, housing: 6 },
+        tech: {},
+        log: [
+          "🦫 Die erste Biberkolonie am Fluss gegründet. Die Zivilisation beginnt.",
+          "Baue Gebäude, trainiere Arbeiter und erfinde neue Technologien!"
+        ],
+        prestige: { total: 0, best: 0 },
+        milestones: {}
+      });
+
+      let state = loadGame();
+
+      function loadGame() {
+        try {
+          const raw = localStorage.getItem(SAVE_KEY);
+          if (!raw) return defaultState();
+          const parsed = JSON.parse(raw);
+          const fresh = defaultState();
+          return {
+            ...fresh,
+            ...parsed,
+            resources: { ...fresh.resources, ...parsed.resources },
+            buildings: { ...fresh.buildings, ...parsed.buildings },
+            jobs: { ...fresh.jobs, ...parsed.jobs },
+            tech: parsed.tech || {},
+            milestones: parsed.milestones || {}
+          };
+        } catch (e) {
+          console.warn("Save error:", e);
+          return defaultState();
+        }
+      }
+
+      function saveGame() {
+        try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+      }
+
+      function addLog(msg) {
+        state.log.unshift(msg);
+        state.log = state.log.slice(0, 12);
+      }
+
+      function hasUnlock(key) {
+        const tech = JOBS[key]?.unlock || BUILDINGS[key]?.unlock;
+        return !tech || state.tech[tech];
+      }
+
+      function getTechMult(type) {
+        let m = 1;
+        Object.keys(state.tech).forEach(tk => {
+          const t = TECHS[tk];
+          if (!t) return;
+          if (t.effect[type]) m *= t.effect[type];
+          if (t.effect.allProd && type.endsWith("Mult")) m *= 1.3;
+        });
+        return m;
+      }
+
+      function getProduction() {
+        const w = WEATHER[state.weatherIndex] || WEATHER[0];
+        const p = { food: 0, wood: 0, stone: 0, water: 0, knowledge: 0, mineral: 0, energy: 0, renown: 0 };
+
+        Object.entries(JOBS).forEach(([k, j]) => {
+          if (!hasUnlock(k)) return;
+          const cnt = state.jobs[k] || 0;
+          Object.entries(j.prod).forEach(([res, amt]) => { p[res] = (p[res] || 0) + cnt * amt; });
+        });
+
+        Object.entries(BUILDINGS).forEach(([k, b]) => {
+          const cnt = state.buildings[k] || 0;
+          if (cnt === 0) return;
+          const eff = b.effect();
+          if (eff.housing) p.housing = (p.housing || 0) + eff.housing * cnt;
+          if (eff.population) p.food = (p.food || 0) + 0.1 * cnt;
+          Object.entries(eff).forEach(([res, amt]) => {
+            if (!["housing", "population"].includes(res)) p[res] = (p[res] || 0) + amt * cnt;
+          });
+        });
+
+        p.food *= w.food * getTechMult("foodMult");
+        p.wood *= getTechMult("woodMult");
+        p.stone *= getTechMult("stoneMult");
+        p.water *= w.water * getTechMult("waterMult");
+        p.mineral *= getTechMult("mineralMult");
+        p.energy *= getTechMult("energyMult");
+        p.renown += (state.buildings.observatory || 0) * 0.02;
+
+        return p;
+      }
+
+      function canAfford(cost) {
+        return Object.entries(cost).every(([res, amt]) => (state.resources[res] || 0) >= amt);
+      }
+
+      function spend(cost) {
+        Object.entries(cost).forEach(([res, amt]) => {
+          state.resources[res] = Math.max(0, (state.resources[res] || 0) - amt);
+        });
+      }
+
+      function buyBuilding(k) {
+        const b = BUILDINGS[k];
+        if (!b || !canAfford(b.cost) || !hasUnlock(k)) return;
+        spend(b.cost);
+        state.buildings[k] += 1;
+        addLog(`🏗️ ${b.name} errichtet!`);
+        render();
+      }
+
+      function buyTech(k) {
+        const t = TECHS[k];
+        if (!t || state.tech[k] || !canAfford(t.cost)) return;
+        spend(t.cost);
+        state.tech[k] = true;
+        addLog(`🔬 ${t.name} erforscht!`);
+        if (t.unlock && JOBS[t.unlock]) addLog(`  → Job freigeschalten: ${JOBS[t.unlock].name}`);
+        render();
+      }
+
+      function adjustJob(k, d) {
+        if (!hasUnlock(k)) return;
+        const cur = state.jobs[k] || 0;
+        const nxt = Math.max(0, cur + d);
+        const tot = Object.values(state.jobs).reduce((s, v) => s + v, 0) - cur + nxt;
+        if (tot > state.population.total) return;
+        state.jobs[k] = nxt;
+        render();
+      }
+
+      function startMission(k) {
+        if (state.missionActive) return;
+        const m = MISSIONS[k];
+        if (!canAfford(m.cost)) return;
+        spend(m.cost);
+        state.missionActive = k;
+        state.missionProgress = 0;
+        addLog(`🗺️ Mission gestartet: ${m.name} (${m.time}s)`);
+        render();
+      }
+
+      function prestige() {
+        const gain = Math.max(1, Math.floor(state.resources.renown + state.population.total * 0.5));
+        state.prestige.total += gain;
+        state.prestige.best = Math.max(state.prestige.best, gain);
+        addLog(`⭐ Prestige! +${gain} Ruhm für den nächsten Lauf!`);
+
+        const fresh = defaultState();
+        state.resources = fresh.resources;
+        state.buildings = fresh.buildings;
+        state.jobs = fresh.jobs;
+        state.tech = {};
+        state.missionActive = null;
+        state.missionProgress = 0;
+        state.resources.renown = gain;
+        state.lastTick = Date.now();
+        saveGame();
+        render();
+      }
+
+      function checkMilestones() {
+        Object.entries(MILESTONES).forEach(([k, m]) => {
+          if (state.milestones[k] || !m.cond()) return;
+          state.milestones[k] = true;
+          Object.entries(m.reward).forEach(([r, a]) => { state.resources[r] = (state.resources[r] || 0) + a; });
+          addLog(`🏅 Meilenstein: ${m.name}!`);
+        });
+      }
+
+      function updateWeather(ds) {
+        state.weatherTimer += ds;
+        if (state.weatherTimer >= 24) {
+          state.weatherTimer = 0;
+          state.weatherIndex = (state.weatherIndex + 1) % WEATHER.length;
+          addLog(`🌤️ Wetter: ${WEATHER[state.weatherIndex].name}`);
+        }
+      }
+
+      function updateMissions(ds) {
+        if (!state.missionActive) return;
+        const m = MISSIONS[state.missionActive];
+        state.missionProgress += ds;
+        if (state.missionProgress >= m.time) {
+          Object.entries(m.reward).forEach(([r, a]) => { state.resources[r] = (state.resources[r] || 0) + a; });
+          addLog(`✅ Mission abgeschlossen: ${m.name}!`);
+          state.missionActive = null;
+          state.missionProgress = 0;
+          checkMilestones();
+        }
+      }
+
+      function renderResources() {
+        const bar = document.getElementById("resourcesBar");
+        const prod = getProduction();
+        bar.innerHTML = Object.entries(RESOURCE_META).map(([k, m]) => {
+          const val = state.resources[k] || 0;
+          const pps = prod[k] || 0;
+          const disp = val >= 1000 ? (val / 1000).toFixed(1) + "k" : val.toFixed(1);
+          return `
+            <div class="resource-card">
+              <div class="label"><span class="dot" style="background:${m.color}; box-shadow:0 0 8px ${m.color};"></span> ${m.emoji} ${m.name}</div>
+              <div class="value">${disp}</div>
+              ${pps > 0 ? `<div class="pps">+${pps.toFixed(1)}/s</div>` : ""}
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderPopulation() {
+        const pop = document.getElementById("populationPanel");
+        pop.innerHTML = `
+          <div class="stat-box">
+            <div><div class="meta">Kolonie</div><div class="value">${Math.floor(state.population.total)} 🦫</div></div>
+            <div class="status-pill">${Math.floor(state.population.free)} frei</div>
+          </div>
+        `;
+
+        const jobs = document.getElementById("jobPanel");
+        jobs.innerHTML = Object.entries(JOBS).map(([k, j]) => {
+          if (!hasUnlock(k)) return "";
+          const c = state.jobs[k] || 0;
+          return `
+            <div class="job-row">
+              <div class="job-left"><div class="job-name">${j.name}</div><div class="status-line"><span class="status-pill">${c}</span></div></div>
+              <div class="job-actions">
+                <button class="action-btn" data-action="job" data-key="${k}" data-dir="-1">−</button>
+                <button class="action-btn" data-action="job" data-key="${k}" data-dir="1">+</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderEnvironment() {
+        const env = document.getElementById("environmentPanel");
+        const w = WEATHER[state.weatherIndex] || WEATHER[0];
+        env.innerHTML = `
+          <div class="event-box">
+            <h3>${w.name}</h3>
+            <div class="status-line">
+              <span class="status-pill">🌾 ${(w.food * 100).toFixed(0)}%</span>
+              <span class="status-pill">💧 ${(w.water * 100).toFixed(0)}%</span>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderProduction() {
+        const prod = getProduction();
+        const pp = document.getElementById("productionPanel");
+        pp.innerHTML = `
+          <div class="production-detail">
+            ${["food", "wood", "stone", "water", "mineral", "energy", "knowledge", "renown"].map(k => {
+              if (!prod[k]) return "";
+              return `<div class="prod-item"><span>${RESOURCE_META[k]?.emoji || "?"} ${RESOURCE_META[k]?.name || k}</span><span style="color:var(--green);">+${prod[k].toFixed(2)}/s</span></div>`;
+            }).join("")}
+          </div>
+        `;
+      }
+
+      function renderBuildings() {
+        const renderCat = (cat, panel) => {
+          const p = document.getElementById(panel);
+          p.innerHTML = Object.entries(BUILDINGS).filter(([_, b]) => b.cat === cat).map(([k, b]) => {
+            const cnt = state.buildings[k] || 0;
+            const dis = !canAfford(b.cost) ? "disabled" : "";
+            const cost = Object.entries(b.cost).map(([r, a]) => `<span class="cost-pill">${RESOURCE_META[r]?.emoji || ""} ${a}</span>`).join("");
+            return `
+              <div class="building-item">
+                <div class="building-info"><h4>${b.name} (${cnt})</h4><p>${b.description}</p><div class="cost-line">${cost}</div></div>
+                <button class="buy-btn" data-action="building" data-key="${k}" ${dis}>Bauen</button>
+              </div>
+            `;
+          }).join("");
+        };
+        renderCat("basic", "buildingsBasicPanel");
+        renderCat("special", "buildingsSpecialPanel");
+        renderCat("monumental", "buildingsMonumentalPanel");
+      }
+
+      function renderTechs() {
+        const renderTier = (tier, panel) => {
+          const p = document.getElementById(panel);
+          p.innerHTML = Object.entries(TECHS).filter(([_, t]) => t.tier === tier).map(([k, t]) => {
+            const own = !!state.tech[k];
+            const dis = own || !canAfford(t.cost) ? "disabled" : "";
+            const cost = Object.entries(t.cost).map(([r, a]) => `<span class="cost-pill">${RESOURCE_META[r]?.emoji || ""} ${a}</span>`).join("");
+            return `
+              <div class="tech-item">
+                <h4>${t.name}</h4>
+                <p>${t.name}: ${Object.entries(t.effect).map(([k, v]) => `${k.replace("Mult", "")} ${(v * 100 - 100).toFixed(0)}%`).join(", ")}</p>
+                <div class="cost-line">${cost}</div>
+                <button class="tech-btn" data-action="tech" data-key="${k}" ${dis}>${own ? "✓ Erforscht" : "Forschen"}</button>
+              </div>
+            `;
+          }).join("");
+        };
+        renderTier("early", "techEarlyPanel");
+        renderTier("advanced", "techAdvancedPanel");
+        renderTier("elite", "techElitePanel");
+      }
+
+      function renderMissions() {
+        const p = document.getElementById("missionsPanel");
+        if (state.missionActive) {
+          const m = MISSIONS[state.missionActive];
+          const pct = Math.min(100, (state.missionProgress / m.time) * 100);
+          p.innerHTML = `
+            <div class="event-box">
+              <h3>⏳ ${m.name} läuft...</h3>
+              <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%;"></div></div>
+              <div class="status-line" style="margin-top: 0.6rem;">${(state.missionProgress).toFixed(0)}/${m.time}s</div>
+            </div>
+          `;
+          return;
+        }
+
+        p.innerHTML = Object.entries(MISSIONS).map(([k, m]) => {
+          const dis = !canAfford(m.cost) ? "disabled" : "";
+          const cost = Object.entries(m.cost).map(([r, a]) => `<span class="cost-pill">${RESOURCE_META[r]?.emoji || ""} ${a}</span>`).join("");
+          const rwd = Object.entries(m.reward).map(([r, a]) => `<span class="effect-pill" style="background:rgba(122,214,160,0.2);">${RESOURCE_META[r]?.emoji || ""} +${a}</span>`).join("");
+          return `
+            <div class="mission-item">
+              <h4>${m.name} (${m.difficulty})</h4>
+              <div class="cost-line">Kosten: ${cost}</div>
+              <div class="cost-line">Belohnung: ${rwd}</div>
+              <button class="mission-btn" data-action="mission" data-key="${k}" ${dis}>Starten (${m.time}s)</button>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderEvents() {
+        const e = document.getElementById("eventPanel");
+        e.innerHTML = Object.keys(state.milestones).map(k => `<div class="milestone-badge">${MILESTONES[k].name} ✓</div>`).join("") || "<p style='color: var(--muted); font-size: 0.9rem;'>Keine Meilensteine erreicht.</p>";
+      }
+
+      function renderLog() {
+        const l = document.getElementById("logPanel");
+        l.innerHTML = `<div class="log-list">${state.log.map(m => `<div class="log-item">${m}</div>`).join("")}</div>`;
+      }
+
+      function renderProgress() {
+        const p = document.getElementById("progressPanel");
+        const prog = {
+          "Gebäude": Object.values(state.buildings).reduce((a, b) => a + b, 0),
+          "Technologien": Object.keys(state.tech).length,
+          "Bevölkerung": Math.floor(state.population.total),
+          "Gesamtruhm": Math.floor(state.resources.renown)
+        };
+        p.innerHTML = Object.entries(prog).map(([k, v]) => `<div class="stat-box"><div><div class="meta">${k}</div><div class="value">${v}</div></div></div>`).join("");
+      }
+
+      function renderAchievements() {
+        const a = document.getElementById("achievementsPanel");
+        a.innerHTML = Object.entries(MILESTONES).map(([k, m]) => {
+          const done = !!state.milestones[k];
+          return `<div class="milestone-badge" style="background:${done ? "linear-gradient(135deg, var(--gold), var(--orange))" : "rgba(255,255,255,0.1)"}; color:${done ? "#000" : "var(--muted)"};">${m.name} ${done ? "✓" : "❌"}</div>`;
+        }).join("");
+      }
+
+      function render() {
+        renderResources();
+        renderPopulation();
+        renderEnvironment();
+        renderProduction();
+        renderBuildings();
+        renderTechs();
+        renderMissions();
+        renderEvents();
+        renderLog();
+        renderProgress();
+        renderAchievements();
+
+        const pi = document.getElementById("prestigeInfo");
+        pi.textContent = `Prestige: ${state.prestige.total} | Best: ${state.prestige.best}`;
+      }
+
+      function tick() {
+        const now = Date.now();
+        const ds = Math.min((now - state.lastTick) / 1000, 1.2);
+        state.lastTick = now;
+
+        const prod = getProduction();
+        Object.keys(prod).forEach(k => {
+          state.resources[k] = Math.max(0, (state.resources[k] || 0) + prod[k] * ds);
+        });
+
+        if (state.resources.food <= 0) {
+          state.population.total = Math.max(1, state.population.total - 0.3 * ds);
+          state.jobs.forager = Math.max(0, state.jobs.forager - 0.1 * ds);
+        }
+
+        updateWeather(ds);
+        updateMissions(ds);
+        checkMilestones();
+        saveGame();
+        render();
+      }
+
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        if (action === "building") buyBuilding(btn.dataset.key);
+        if (action === "tech") buyTech(btn.dataset.key);
+        if (action === "job") adjustJob(btn.dataset.key, Number(btn.dataset.dir));
+        if (action === "mission") startMission(btn.dataset.key);
+
+        if (btn.id === "saveBtn") { saveGame(); addLog("💾 Sicherung gespeichert."); render(); }
+        if (btn.id === "resetBtn") { prestige(); }
+      });
+
+      document.querySelectorAll(".tab-btn").forEach(b => {
+        b.addEventListener("click", () => {
+          document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
+          document.querySelectorAll(".tab-content").forEach(x => x.classList.remove("active"));
+          b.classList.add("active");
+          const tab = b.dataset.tab + "Tab";
+          document.getElementById(tab).classList.add("active");
+        });
+      });
+
+      state.lastTick = Date.now();
+      render();
+      setInterval(tick, 250);
+      setInterval(saveGame, 10000);
+    </script>
   </body>
 </html>
