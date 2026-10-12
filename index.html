@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beaver Empire</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Idle Strategy / Browser Game</p>
+          <h1>Beaver Empire</h1>
+        </div>
+        <div class="header-actions">
+          <button id="saveBtn" class="secondary">Speichern</button>
+          <button id="resetBtn" class="danger">Prestige</button>
+        </div>
+      </header>
+
+      <section id="resourcesBar" class="resources-bar"></section>
+
+      <div class="layout">
+        <aside class="panel-stack left-column">
+          <section class="panel">
+            <h2>Bevölkerung</h2>
+            <div id="populationPanel"></div>
+            <div id="jobPanel"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Gebäude</h2>
+            <div id="buildingPanel"></div>
+          </section>
+        </aside>
+
+        <main class="content-column">
+          <section class="panel">
+            <h2>Umwelt & Ereignisse</h2>
+            <div id="eventPanel"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Technologie</h2>
+            <div id="techPanel"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Chronik</h2>
+            <div id="logPanel"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="game.js"></script>
+  </body>
+</html>
